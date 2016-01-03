@@ -106,6 +106,46 @@
 (count-occurrences 'w '((f x) y (((x z) x))))
 
 
-                
+;; Exercise 1.21 [**] (product sos1 sos2), where sos1 and sos2 are each a list of symbols without
+;; repetitions, returns a list of 2-lists
+;; than represents the Cartesian product of sos1 and sos2. The 2-lists may appear in any order.
+
+
+(define product-l
+  (lambda (sos1 sos2 sos3)
+    (if (null? sos1)
+        '()
+        (if (null? sos2)
+            (product-l (cdr sos1) sos3 sos3)
+            (cons (list (car sos1) (car sos2))
+                  (product-l sos1 (cdr sos2) sos3))))))
+
+
+(product-l '(a b) '(x y z) '(x y z))
+
+(define product
+  (lambda (sos1 sos2)
+    (product-l sos1 sos2 sos2)))
+
+(product '(a b c) '(x y z))
+
+
+;; Exercise 1.22 [**] (filter-in pre lst) returns the list of those elements in lst that satisfy the predicate pred.
+
+(define filter-in
+  (lambda (pre lst)
+    (if (null? lst)
+        '()
+        (if (pre (car lst))
+            (cons (car lst)
+                  (filter-in pre (cdr lst)))
+            (filter-in pre (cdr lst))))))
+
+(filter-in number? '(a 2 (1 3) b 7))
+(filter-in symbol? '(a (b c) 17 foo))
+       
+  
+
+
 
 
