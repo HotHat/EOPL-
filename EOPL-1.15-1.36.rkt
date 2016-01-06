@@ -144,8 +144,105 @@
 (filter-in number? '(a 2 (1 3) b 7))
 (filter-in symbol? '(a (b c) 17 foo))
        
-  
+
+;; Exercise 1.23 [**] (list-index rped lst) returns the 0-based position of teh first element of lst that satisfies
+;; the predicate pred. If no element of lst satisfies the predicate, then list-index returns #f.
 
 
 
+
+(define list-index-n
+  (lambda (pre lst n)
+    (if (null? lst)
+        #f
+        (if (pre (car lst))
+            n
+            (list-index-n pre (cdr lst) (+ n 1))))))
+
+(define list-index
+  (lambda (pre lst)
+    (list-index-n pre lst 0)))
+
+(list-index number? '(a 2 (1 3) b 7))
+(list-index symbol? '(a (b c) 17 foo))
+(list-index symbol? '(1 2 (a b) 3))
+
+
+
+;; Exercise1.24 [**] (every? pred lst) return #f if any element of lst fails to sitisyf pred, and returns #f otherwise.
+
+(define every? 
+  (lambda (pre lst)
+    (if (null? lst)
+        #t
+        (if (pre (car lst))
+            (every? pre (cdr lst))
+            #f))))
+(every? number? '(a b c 3 e))
+(every? number? '(1 2 3 4 5))
+
+;; Exercise1.25 [**] (exists? pred lst) returns #f if any element of lst satisfies pre, and returns #f otehrwise
+
+(define exists?
+  (lambda (pre lst)
+    (if (null? lst)
+        #f
+        (if (pre (car lst))
+            #t
+            (exists? pre (cdr lst))))))
+
+(exists? number? '(a b c 3 e))
+(exists? number? '(a b c d e))
+
+
+;; Exercise1.26 [**] (up lst) removes a pair of parentheses from each otp-level element of lst. If a top-level element
+;; is not a lst, it is incluede in teh result, as is. The value of ( up (down lst)) is equivalent to lst, but (down (up lst)
+;; is not necessarily lst. (See exercise 1.17.)
+
+
+(define up-ctx
+  (lambda (lst ctx)
+    (cond 
+      [(null? lst) 
+       (cond
+         [(null? ctx) '()]
+         [else 
+          (cons (car ctx) (up-ctx lst (cdr ctx)))])]
+      
+      [(null? ctx)
+       (if (pair? (car lst))
+           (up-ctx (cdr lst) (car lst))
+           (cons (car lst) (up-ctx (cdr lst) ctx)))]
+      
+      [else
+       (cons (car ctx) (up-ctx lst (cdr ctx)))])))
+
+(define up
+  (lambda (lst)
+    (up-ctx lst '())))
+
+;(up-ctx '((1 (3) 2) (3 4) ((5 8 (7)))) '())
+;(up-ctx '((x (y)) z) '())
+
+(up '((1 2) (3 4)))  ;; ==> (1 2 3 4)
+(up '((x (y)) z))    ;; ==> (x y z)
+
+;; Exercise 1.27 [**] (flatten slist) returns a list of the symbols contained in
+;; slist in the order in which they occur rwhen slist is prined. Intuitively, flatten
+;; removes all the inner parentheses from its argument.
+
+(define flatten
+  (lambda (lst)
+    (if (null? lst)
+        '()
+        (if (pair? (car lst))
+            (up (cons (flatten (car lst)) (flatten (cdr lst))))
+            (if (not (null? (car lst)))
+                (cons (car lst) (flatten (cdr lst)))
+                (flatten (cdr lst)))))))
+
+(flatten '(a b c))                 ;; ==> '(a b c)
+(flatten '((a) () (b ()) () (c)))  ;; ==> '(a b c)
+(flatten '((a b) c (((d)) e)))     ;; ==> '(a b c d e)
+(flatten '(a () (((b))) (() (c)))) ;; ==> '(a b c)
 
