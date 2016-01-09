@@ -482,6 +482,68 @@ tree                ;; ==> '(red (bar 26 12) (red 11 (quux 117 14)))
 ;;> (path 17 ’(14 (7 () (12 () ())) (26 (20 (17 () ())
 ;;                          ())
 ;;                      (31 () ()))))
-;;  (right left left
+;;  (right left left)
 
+
+;; TODO:
+
+
+;; Exercise 1.35
+(define number-leaves-ctx
+  (lambda (tree ctx)
+    (if (leaf? tree)
+        (values (leaf ctx) (+ 1 ctx))
+         (let ((sym (tree-sym tree))   ;; tree-sym defined in 1.32
+              (l (lson tree))
+              (r (rson tree)))
+           (let*-values ([(ltree lcount) (number-leaves-ctx l ctx)]
+                        [(rtree rcount) (number-leaves-ctx r lcount)])
+           
+             (values (interior-node sym ltree rtree ) rcount))))))
+
+(define number-leaves
+  (lambda (tree)
+    (let-values ([(tr count) (number-leaves-ctx tree 0)])
+      tr)))
+
+(number-leaves
+    (interior-node 'foo
+      (interior-node 'bar
+        (leaf 26)
+        (leaf 12))
+      (interior-node 'baz
+        (leaf 11)
+        (interior-node 'quux
+          (leaf 117)
+          (leaf 14)))))   ;;==> '(foo (bar 0 1) (baz 2 (quux 3 4)))
+
+;; Exercise 1.36 [***] Write a procedure g such that number-elements from page 23
+;; could be defined as
+
+;;(define number-elements
+;;    (lambda (lst)
+;;      (if (null? lst) '()
+;;          (g (list 0 (car lst)) (number-elements (cdr lst))))))
+
+
+;; every element add 1
+(define x   
+  (lambda (lst)
+    (if (null? lst)
+        '()
+        (let ((l1 (caar lst))
+              (l2 (cadar lst)))
+          (cons (list (+ l1 1) l2) (x (cdr lst)))))))
+
+(define g
+  (lambda (lst1 lst2)
+      (cons lst1 (x lst2))))
+
+(define number-elements
+    (lambda (lst)
+      (if (null? lst) '()
+          (g (list 0 (car lst)) (number-elements (cdr lst))))))
+
+
+(number-elements '(a b c d e f))  ;; ==> '((0 a) (1 b) (2 c) (3 d) (4 e) (5 f))
 
