@@ -3,6 +3,12 @@
 
 (struct node (type start end chars) #:transparent)
 
+
+(node?  (node  'type 1 2 "c"))
+
+
+
+
 (define code "-(55, -(x,11))")
 (define delimit '(#\- #\( #\, #\)))
 (define space '(#\space #\return #\tab))
@@ -39,7 +45,7 @@
              (values (node 'token start (add1 start) (substring str start (add1 start))) (add1 start))]
             [else
              (let loop ((ss (add1 start)))
-               (printf "Test ~s~%" ss )
+              ; (printf "Test ~s~%" ss )
                (cond
                  [(> ss (string-length str))
                   (values (node 'token start ss (substring str start ss)) ss)]
@@ -55,7 +61,7 @@
   (lambda (str)
     (let loop ((stk-lst '()) (start 0))
       (let-values ([(tk val) (scan1 str start)])
-        (printf "Token: ~s, value: ~s~%" tk val)
+        ;(printf "Token: ~s, value: ~s~%" tk val)
         (cond
           [(< val (string-length str))
            (loop (cons tk stk-lst) val)]
@@ -98,21 +104,69 @@
 (is-number-string? "123")
 
 
-(define expression '())
 
-(define const-exp?
-  (lambda (node)
-    (if (is-number-string? (node-chars))
-        #t
-        #f)))
-(define const-exp
-  (lambda (num)
-    `(const ,num)))
+(struct const-exp (value) #:transparent )
+(struct diff-exp (rator rand) #:transparent)
+(struct var-exp (variable) #:transparent)
+(struct not-exp () #:transparent)
+
+
+;(define expression '())
+
+;(define const-exp?
+;  (lambda (node)
+;    (if (is-number-string? (node-chars))
+;        #t
+;        #f)))
+;(define const-exp
+;  (lambda (num)
+;    `(const ,num)))
 
 ;(const-exp 55)
 
-;(define zero?-exp?
-;  (lambda (lst)
-;    (if 
+
+(define parse1
+  (lambda (nodes)
+    (cond
+      [(null? nodes) (values (not-exp) '())]
+      
+      [(is-number-string? (node-chars (car nodes)))
+       (values (const-exp (node-chars (car nodes))) (cdr nodes))]
+      
+      [(string=? "-" (node-chars (car nodes)))
+       (let ((node-lst (cdr nodes)))
+        (cond
+          [(null? node-lst) (error "vvvv")]
+          [(not (string=? (node-chars (car node-lst)) "("))
+           (error "fff")]
+          [else 
+           (let-values ([(stk lst) (parse1 (cdr node-lst))])
+             (cond
+               [(null? lst) (error "ppp")]
+               [(not (string=? (node-chars (car lst)) ","))
+                (error "ppp-1")]
+               [else
+                (let-values ([(stk2 lst2) (parse1 (cdr lst))])
+                  (cond
+                    [(null? lst2) (error "ppp-2")]
+                    [(not (string=? (node-chars (car lst2)) ")"))
+                     (error "ppp-3")]
+                    [else
+                     (values (diff-exp stk stk2) (cdr lst2))]))]))]))]
+      [else
+       (values (var-exp (node-chars (car nodes))) (cdr nodes))])))
+
+
+(define test-scan (scan "-(55, -(x, -(85, 29)))"))
+
+test-scan
+
+(parse1 test-scan)
+                 
+
+
+
+
+
 
 
