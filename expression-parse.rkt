@@ -4,7 +4,7 @@
 (struct node (type start end chars) #:transparent)
 
 
-(node?  (node  'type 1 2 "c"))
+;(node?  (node  'type 1 2 "c"))
 
 
 
@@ -26,11 +26,11 @@
         #t
         #f)))
 
-(is-delimit? "-")
-(is-delimit? "a")
-(is-space? " ")
-(is-space? "a")
-
+;(is-delimit? "-")
+;(is-delimit? "a")
+;(is-space? " ")
+;(is-space? "a")
+;
 
 
 
@@ -69,9 +69,9 @@
            (reverse (cons tk stk-lst))])))))
 
 ;; "-(55, -(x,11))"
-(scan code )
+;(scan code )
 
-(scan "zero?(5)")
+;(scan "zero?(5)")
 
                         
 ;; Designing an interface for a recursive data type
@@ -101,7 +101,7 @@
           [else
            #f])))))
 
-(is-number-string? "123")
+;(is-number-string? "123")
 
 
 
@@ -109,6 +109,7 @@
 (struct diff-exp (rator rand) #:transparent)
 (struct var-exp (variable) #:transparent)
 (struct not-exp () #:transparent)
+(struct zero?-exp(expresson) #:transparent)
 
 
 ;(define expression '())
@@ -130,10 +131,10 @@
     (cond
       [(null? nodes) (values (not-exp) '())]
       
-      [(is-number-string? (node-chars (car nodes)))
+      [(is-number-string? (node-chars (car nodes)))                     ;; Number
        (values (const-exp (node-chars (car nodes))) (cdr nodes))]
       
-      [(string=? "-" (node-chars (car nodes)))
+      [(string=? "-" (node-chars (car nodes)))                          ;; diff expression
        (let ((node-lst (cdr nodes)))
         (cond
           [(null? node-lst) (error "vvvv")]
@@ -153,11 +154,28 @@
                      (error "ppp-3")]
                     [else
                      (values (diff-exp stk stk2) (cdr lst2))]))]))]))]
+      
+      
+      [(string=? "zero?" (node-chars (car nodes)))         ;; zero?-exp
+       (let ((node-lst (cdr nodes)))
+         (cond
+           [(null? node-lst) (error "zero?---1")]
+           [(not (string=? (node-chars (car node-lst)) "("))
+            (error "zero?-------2")]
+           [else
+            (let-values ([(stk lst) (parse1 (cdr node-lst))])
+              (cond
+               [(null? lst) (error "zero?-----3")]
+               [(not (string=? (node-chars (car lst)) ")"))
+                (error "zero?--------4")]
+               [else
+                 (values (zero?-exp stk) (cdr lst))]))]))]
+      
       [else
        (values (var-exp (node-chars (car nodes))) (cdr nodes))])))
 
 
-(define test-scan (scan "-(55, -(x, -(85, 29)))"))
+(define test-scan (scan "zero?(-(55, -(x, -(85, zero?(25)))))"))
 
 test-scan
 
@@ -166,6 +184,47 @@ test-scan
 
 
 
+;(require (lib "eopl/eopl.ss"))
+;
+;
+;(define a-program 'a-program)
+;
+;(define the-lexical-spec
+;  '((whitespace (whitespace) skip)
+;    (comment ("%" (arbno (not #\newline))) skip)
+;    (identifier (letter (arbno (or letter digit "_" "-" "?"))) symbol)
+;    (number (digit (arbno digit)) number)
+;    (number ("-" digit (arbno digit)) number)))
+;
+;
+;(define the-grammar
+;    '((program (expression) a-program)
+;
+;      (expression (number) const-exp)
+;      (expression
+;        ("-" "(" expression "," expression ")")
+;        diff-exp)
+;      
+;      (expression
+;       ("zero?" "(" expression ")")
+;       zero?-exp)
+;
+;      (expression
+;       ("if" expression "then" expression "else" expression)
+;       if-exp)
+;
+;      (expression (identifier) var-exp)
+;
+;      (expression
+;       ("let" identifier "=" expression "in" expression)
+;       let-exp)   
+;
+;      ))
+;
+;(define just-scan
+;  (sllgen:make-string-parser the-lexical-spec the-grammar))
+;
+;(just-scan "-(5, -(x, 10))")
 
 
 
