@@ -3,34 +3,61 @@
   
   (provide (all-defined-out))
   
-  (define a-program
-    (lambda (expression)
-    `(a-program ,expression)))
-  
-  (define var-exp
-    (lambda (identifier)
-    `(var-exp ,identifier)))
-  
-  (define zero?-exp
-    (lambda (expression)
-    `(zero?-exp ,expression)))
-  
-  (define diff-exp
-    (lambda (exp1 exp2)
-    `(diff-exp ,exp1 ,exp2)))
 
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+  (define-datatype expval expval?
+    (num-val
+     (num number?))
+    (bool-val
+     (bool boolean?)))
   
-  (define if-exp
-    (lambda (exp1 exp2 exp3)
-    `(if-exp ,exp1 ,exp2 ,exp3)))
+  (define expval->num
+    (lambda (val)
+      (cases expval val
+        (num-val (num) num)
+        (else
+         (eopl:error "error: ~a, ~a" 'num val)))))
   
-  (define let-exp
-    (lambda (ident exp1 exp2)
-    `(let-exp ,ident ,exp1 ,exp2)))
+  (define expval->bool
+    (lambda (val)
+      (cases expval val
+        (bool-val (bool) bool)
+        (else (eopl:error "error: ~a, ~a" 'num val)))))
   
-  (define const-exp
-    (lambda (ident)
-      `(const-exp ,ident)))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+  (define empty-env
+    (lambda ()
+      (lambda (var)
+        (eopl:error "unbinded variable: " var))))
+
+  (define extend-env
+    (lambda (var val env)
+      (lambda (f-var)
+        (if (equal? f-var var)
+            val
+            (env f-var)))))
+
+  (define apply-env
+    (lambda (env var)
+      (env var)))
+
+  (define init-env
+    (lambda ()
+      (extend-env 'i (num-val 1)
+           (extend-env 'v (num-val 5)
+               (extend-env 'x (num-val 10)
+                     (empty-env))))))
+  
+  ;(display (apply-env (init-env) 'x))
+  
   
   
 )  
