@@ -7,14 +7,24 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
+  ;  ExpVal := Bool + Int + Pair + EmptyList
+  ;  DesVal := Bool + Int + Pair + EmptyList
 
 
   (define-datatype expval expval?
     (num-val
      (num number?))
     (bool-val
-     (bool boolean?)))
+     (bool boolean?))
+    
+    ;; Exercise 3.9
+    (emptylist (emptylist null?))
+    (pair-val
+     (first expval?)
+     (secend expval?))
+    
+    
+   )
   
   (define expval->num
     (lambda (val)
@@ -29,6 +39,31 @@
         (bool-val (bool) bool)
         (else (eopl:error "error: ~a, ~a" 'num val)))))
   
+  
+  ;; Exercise 3.9
+  (define car-my
+    (lambda (val)
+      (cases expval val
+          (pair-val (first secend)
+               first)
+          (else 
+             (eopl:error "~a is a empty list" val)))))
+  
+  (define cdr-my
+    (lambda (val)
+      (cases expval val
+        (pair-val (first secend)
+            secend)
+        (else  
+            (eopl:error "~a is empty list!" val)))))
+  
+  (define null?-my
+    (lambda (val)
+      (cases expval val
+        (emptylist (exp)
+            (bool-val #t))
+        (else
+             (bool-val #f)))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
