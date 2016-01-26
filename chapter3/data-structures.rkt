@@ -22,8 +22,7 @@
     (pair-val
      (first expval?)
      (secend expval?))
-    
-    
+
    )
   
   (define expval->num
