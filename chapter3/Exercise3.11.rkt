@@ -133,24 +133,80 @@
                     (bool-val #t)
                     (bool-val #f)))]
              
+             ;; Exercise 3.6
              [(eqv? 'minus var)
               (let ((val (value-of-function fun env)))
                 (let ((v (expval->num (car-my val))))
                    (num-val (- v))))]
              
+             ;; Exercise 3.7
              [(eqv? 'add var)
               (let ((val (value-of-function fun env)))
                 (let ((v1 (expval->num (car-my val)))
                       (v2 (expval->num (car-my (cdr-my val)))))
                    (num-val (+ v1 v2))))]
+             [(eqv? 'multiply var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (expval->num (car-my val)))
+                      (v2 (expval->num (car-my (cdr-my val)))))
+                   (num-val (* v1 v2))))]
+             [(eqv? 'quotient var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (expval->num (car-my val)))
+                      (v2 (expval->num (car-my (cdr-my val)))))
+                   (num-val (+ v1 v2))))]
              
+             ;; Exercise 3.8
+             [(eqv? 'equal? var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (expval->num (car-my val)))
+                      (v2 (expval->num (car-my (cdr-my val)))))
+                    (bool-val (zero? (- v1 v2)))))]
+             [(eqv? 'greater? var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (expval->num (car-my val)))
+                      (v2 (expval->num (car-my (cdr-my val)))))
+                    (bool-val  (> v1 v2))))]
+             [(eqv? 'less? var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (expval->num (car-my val)))
+                      (v2 (expval->num (car-my (cdr-my val)))))
+                    (bool-val  (< v1 v2))))]
+             
+             ;; Exercise 3.9
              [(eqv? 'cons var)
               (let ((val (value-of-function fun env)))
                 (let ((v1 (car-my val))
                       (v2 (car-my (cdr-my val))))
                   (pair-val v1 v2)))]
+             [(eqv? 'car var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (car-my val)))
+                  v1))]
+             [(eqv? 'cdr var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (cdr-my val)))
+                  v1))]
+             [(eqv? 'null? var)
+              (let ((val (value-of-function fun env)))
+                (let ((v1 (car-my val)))
+                  (eopl:printf "null?-exp: ~a~%" val)
+                  (cases expval v1
+                    (emptylist (empty)
+                       (bool-val #t))
+                    (else
+                     (bool-val #f)))))]
+             
              [(eqv? 'emptylist var)
               (emptylist '())]
+             
+             ;; Exercise 3.10
+             
+             [(eqv? 'list var)
+              (let ((val (value-of-function fun env)))
+                val)]
+             
+             
              
              
              
@@ -181,7 +237,8 @@
   
   (eopl:printf "~a~%" (run "let x = minus(5) in zero?(x)") )
   
-  (display (run "cons(let x = minus(5) in  let y = 5 in cons(x,y), emptylist)"))
-  
+  (eopl:printf "~a~%" (run "cons(let x = minus(5) in  let y = 5 in cons(x,y), emptylist)"))
+  (eopl:printf "~a~%" (run "null?(emptylist)"))
+  (eopl:printf "~a~%" (run "let x = 5 in let y =6 in let z=8 in list(x,y,z)"))
   
 )
