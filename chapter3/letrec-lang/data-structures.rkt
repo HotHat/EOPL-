@@ -1,6 +1,5 @@
 (module data-structures (lib "eopl.ss" "eopl")
 
-
   ;; expval := INT + BOOL + PROC
 
   (require "lang.rkt")
@@ -10,18 +9,11 @@
   ;;   (empty-env)
   ;;   (
 
-
-
   (define-datatype  enviroment enviroment?
     (empty-env)
     (extend-env
      (var symbol?)
      (val expval?)
-     (env enviroment?))
-    (extend-env-rec
-     (name symbol?)
-     (var symbol?)
-     (body expression?)
      (env enviroment?)))
 
 
@@ -31,16 +23,11 @@
              (empty-env ()
                         (eopl:printf "empty enviroment"))
              (extend-env (var val env)
-                         (if (eqv? x val)
+                         (if (eqv? x var)
                              val
-                             (apply-env env x)))
-             (extend-env-rec (name var body env)
-                             (if (eqv? x name)
-                                 (proc-val (procedure var body env))
-                                 (apply-env env x))))))
+                             (apply-env env x))))))
 
 
-  
   
   (define-datatype proc proc?
     (procedure
@@ -50,11 +37,18 @@
 
   (define apply-procedure
     (lambda (proc1 val)
+      ;; (begin
+      ;;   (eopl:printf "apply-procedure proc: ~a~%" proc1)
+      ;;   (eopl:printf "apply-procedure val: ~a~%" val))
+
       (cases proc proc1
              (procedure (var body env)
-                        (value-of body (extend-env var val env))))))
+                        ;; (begin
+                        ;;   (eopl:printf "apply-procedure env: ~a~%" (extend-env var val env) )
+                        ;;   (eopl:printf "apply-procedure body: ~a~%" body )
+                          (value-of body (extend-env var val env))))))
   
-
+  
   (define-datatype expval expval?
     (num-val
      (val number?))
@@ -68,7 +62,7 @@
     (lambda (val1 val2)
       (eopl:printf "Error occured expert ~a but get ~a~%" val1 val2)))
   
-  (define expval->int
+  (define expval->num
     (lambda (val)
       (cases expval val
           (num-val (val) val)
@@ -104,7 +98,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   
-  (define program-str "letr y = 5 in -(y 8)")
+
   
 
 ;  (eopl:printf "~a~%" (just-scan program-str))
@@ -123,41 +117,42 @@
              (const-exp (val)
                         (num-val val))
              (diff-exp (exp1 exp2)
-                       (let ((val1 (value-of exp1 env))
-                             (val2 (value-of exp2 env)))
+                       (let ((val1 (expval->num (value-of exp1 env)))
+                             (val2 (expval->num (value-of exp2 env))))
                          (num-val (- val1 val2))))
              (zero?-exp (exp)
                         (let ((val1 (value-of exp env)))
-                          (if (expval->bool val1)
+                          (if (= (expval->num val1) 0)
                               (bool-val #t)
                               (bool-val #f))))
              (if-exp (exp1 exp2 exp3)
                      (let ((val1 (value-of exp1 env)))
                        (if (expval->bool val1)
-                           (let ((val1 (value-of exp2 env)))
-                             (num-val val1))
-                           (let ((val1 (value-of exp3 env)))
-                             (num-val val1)))))
+                           (value-of exp2 env)
+                           (value-of exp3 env))))
              (var-exp (x)
-                      (let ((val ((apply-env env) x)))
-                        (num-val val)))
+                      (apply-env env x))
+
+
              (let-exp (iden exp1 exp2)
-                      (let ((val1 (value-of exp1)))
-                        (value-of exp2 (extend-env iden val1))))
+                      (let ((val1 (value-of exp1 env)))
+                        ;; (eopl:printf "let-exp exp1: ~a~%" val1)
+                        (value-of exp2 (extend-env iden val1 env))))
+
              (proc-exp (iden exp1)
                        (proc-val (procedure iden exp1 env)))
              
              (call-exp (exp1 exp2)
                        (let ((proc (expval->proc (value-of exp1 env)))
                              (val1 (value-of exp2 env)))
-                         (apply-procedure proc exp2)))
-             
-             (letrec-exp (name var exp1 body)
-                         (let ((exp (value-of exp1 env))
-                               (proc (procedure var exp env)))
-                           (value-of body (extend-env name  proc body)))))))
+                         ;; (eopl:printf "call-exp: ~a~%" val1 )
+                         (apply-procedure proc val1)))
+             )))
 
-  ;(eopl:printf "~a~%" (value-of-program (scan&parse program-str)))
+  (define program-str "let y = proc (x) if zero?(-(x,5)) then 1 else 2 in (y 18)")
+  ;  (eopl:printf "~a~%"  (scan&parse program-str))
+;  (eopl:printf "~a~%" (apply-env (init-env) 'x))
+  (eopl:printf "~a~%" (value-of-program (scan&parse program-str)))
   
 
   )

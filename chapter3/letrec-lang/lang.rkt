@@ -1,3 +1,4 @@
+
 (module lang (lib "eopl.ss" "eopl")                
 
   ;; grammar for the LETREC language
@@ -47,11 +48,11 @@
        ("(" expression expression ")")
        call-exp)
 
-      (expression
-        ("letrec"
-          identifier "(" identifier ")" "=" expression
-           "in" expression)
-        letrec-exp)
+      ;; (expression
+      ;;   ("letrec"
+      ;;     identifier "(" identifier ")" "=" expression
+      ;;      "in" expression)
+      ;;   letrec-exp)
       
       ))
   
