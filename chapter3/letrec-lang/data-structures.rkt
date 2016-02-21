@@ -19,12 +19,17 @@
 
   (define apply-env
     (lambda (old-env x)
+      ;; (begin
+      ;;   (eopl:printf "apply-env : ~a => ~a~%" old-env x))
       (cases enviroment old-env
              (empty-env ()
-                        (eopl:printf "empty enviroment"))
+                        (eopl:printf "empty enviroment for: ~a~%" x))
              (extend-env (var val env)
-                         (if (eqv? x var)
-                             val
+
+                         (if (equal? x var)
+                             (begin
+                              ; (eopl:printf "Get variable: ~a~%~%" x)
+                               val)
                              (apply-env env x))))))
 
 
@@ -44,18 +49,30 @@
       (cases proc proc1
              (procedure (var body env)
                         ;; change by Exercise 3.21
-                        (letrec ((more-env (lambda (var-lst val-lst env)
+                        ;; (eopl:printf "var   : ~a  => " var)
+                        ;; (eopl:printf "body: ~a   => " body)
+                        ;; (eopl:printf "env: ~a => " env)
+                        ;; (eopl:printf "val: ~a~%~%" val)
+                        (letrec ((more-env (lambda (var-lst val-lst new-env)
                                              (cond
                                                [(and (null? var-lst) (null? val-lst))
-                                                env]
+                                                new-env]
                                                [(or (null? var-lst) (null? val-lst))
                                                 (eopl:printf "parameters not match ~a <------> ~a~%" var val)]
                                                [else
                                                 (let ((p-var (car var-lst))
                                                       (p-val (car val-lst)))
-                                                  (let ((v (value-of p-val env)))
-                                                    (more-env (cdr var-lst) (cdr val-lst) (extend-env p-var v env))))]))))
-                          (value-of body (more-env var val env)))))))
+                                                  ;; (eopl:printf "var   : ~a~%~%" p-var)
+                                                  ;; (eopl:printf "value: ~a~%~%" p-val)
+                                                  ;; (eopl:printf "env: ~a~%~%" new-env)
+                                                  ;; (eopl:printf "var   : ~a~%~%" p-var)
+                                                     ;; (eopl:printf "value: ~a~%~%" v)
+                                                     ;; (eopl:printf "env: ~a~%~%" new-env)
+                                                    (more-env (cdr var-lst) (cdr val-lst) (extend-env p-var p-val new-env)))]))))
+                          (let ((new-env (more-env var val env)))
+                            ;; (eopl:printf "var ~a =>  ~a~%~%" var val)
+                            ;; (eopl:printf "new env ~a~%~%" new-env)
+                            (value-of body new-env)))))))
   
   
   (define-datatype expval expval?
@@ -140,7 +157,9 @@
                            (value-of exp2 env)
                            (value-of exp3 env))))
              (var-exp (x)
-                      (apply-env env x))
+                      (let ((var (apply-env env x)))
+                        ;(eopl:printf "Find var :~a => ~a  => ~a~%~%" x var env)
+                        var))
 
 
              (let-exp (iden exp1 p-body)
@@ -157,9 +176,16 @@
                        (proc-val (procedure iden exp1 env)))
              
              (call-exp (exp1 exp2)
-                       (let ((proc (expval->proc (value-of exp1 env))))
+                       (letrec ((proc (expval->proc (value-of exp1 env)))
+                                (more-param (lambda (parms rsl)
+                                             (if (null? parms)
+                                                 rsl
+                                                 (let ((val (value-of (car parms) env)))
+                                                   (more-param (cdr parms) (cons val rsl)))))))
                          ;; (eopl:printf "call-exp: ~a~%" val1 )
-                         (apply-procedure proc exp2)))
+                         (let ((param-lst (more-param exp2 '())))
+                           (eopl:printf "call-exp: ~a~%" param-lst )
+                           (apply-procedure proc param-lst))))
              )))
 
   (define program-str "let y = proc (x) if zero?(-(x,5)) then 1 else 2 in (y 18)")
@@ -176,18 +202,42 @@
       "let f = proc (x,y,z,w) -(x, -(0, -(y, -(0,-(z, -(0, w)))))) in (f 1 2 3 4)"))
 
   
-  (letrec ((test (lambda (lst)
-                   (if (null? lst)
-                       (eopl:printf "All test success!")
-                       (begin
-                         (eopl:printf "~a~%" (value-of-program (scan&parse (car lst))))
-                         (test (cdr lst)))))))
-    (test test-list))
+  ;; (letrec ((test (lambda (lst)
+  ;;                  (if (null? lst)
+  ;;                      (eopl:printf "All test success!")
+  ;;                      (begin
+  ;;                        (eopl:printf "~a~%" (value-of-program (scan&parse (car lst))))
+  ;;                        (test (cdr lst)))))))
+  ;;   (test test-list))
 
-;  (define test-str "let f = proc (x,y,z,w) -(x, -(0, -(y, -(0,-(z, -(0, w)))))) in (f 1 2 3 4)")
+  (define test-str "let makemult = proc (maker) proc (x)
+if zero?(x)
+then 0
+else -(((maker maker) -(x,1)), -4)
+in let times4 = proc (x) ((makemult makemult) x) in (times4 3)" )
 
- ; (eopl:printf "~a~%" (value-of-program (scan&parse test-str)))
+ (eopl:printf "~a~%" (value-of-program (scan&parse test-str)))
 
   
 
   )
+
+
+
+;; (value-of (let times4 = proc (x) ((makemult makemult) x) in (times4 3))    [makemult=(proc-val (procedure  (proc-val (procedure p env))))]P)
+
+;; (value-of (times4 3)  [times4=v2][makemult=v]P)
+
+;; (value-of 
+
+;; #(Struct:extend-env times4
+;;                     #(struct:proc-val #(struct:procedure (x)
+;;                                      #(struct:call-exp
+;;                                        #(struct:call-exp
+;;                                          #(struct:var-exp makemult)
+;;                                          (#(struct:var-exp makemult)))
+;;                                        (#(struct:var-exp x)))
+;;                                      #(struct:extend-env makemult
+;;                                                          #(struct:proc-val #(struct:procedure (maker) #(struct:proc-exp (x) #(struct:if-exp #(struct:zero?-exp #(struct:var-exp x)) #(struct:const-exp 0) #(struct:diff-exp #(struct:call-exp #(struct:call-exp #(struct:var-exp maker) (#(struct:var-exp maker))) (#(struct:diff-exp #(struct:var-exp x) #(struct:const-exp 1)))) #(struct:const-exp -4)))) #(struct:extend-env i #(struct:num-val 1) #(struct:extend-env v #(struct:num-val 5) #(struct:extend-env x #(struct:num-val 10) #(struct:empty-env))))))
+
+;;                                                          #(struct:extend-env i #(struct:num-val 1) #(struct:extend-env v #(struct:num-val 5) #(struct:extend-env x #(struct:num-val 10) #(struct:empty-env)))))))
