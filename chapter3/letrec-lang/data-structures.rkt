@@ -187,7 +187,7 @@
                                                    (more-param (cdr parms) (cons val rsl)))))))
                          ;; (eopl:printf "call-exp: ~a~%" val1 )
                          (let ((param-lst (more-param (reverse exp2) '())))
-                           (eopl:printf "call-exp: ~a~%" param-lst )
+                          ;; (eopl:printf "call-exp: ~a~%" param-lst )
                            (apply-procedure proc param-lst))))
              )))
 
@@ -293,10 +293,32 @@
       -((maker maker -(x,1) y), -(0,y))
       in let times = proc (x, y)
       (makemult makemult x y) in (times 3 5)"
-          
+
+      ;; Exercise 3.24
+      "let odd= proc (make1, make2, x)
+if zero?(x)
+then
+zero?(1)
+else
+(make2 make2 make1 -(x,1) )
+in let even = proc (make1, make2, x)
+if zero?(x)
+then
+zero?(0)
+else
+(make2 make2 make1 -(x,1))
+in  let odd? = proc (x)
+(odd odd even x)
+in  let even? = proc (x)
+(even even odd x)
+in (even? 101)"        
 
       ))
 
+
+;; (even even odd 3)
+;; (odd odd even 2)
+;; (
   
   (letrec ((test (lambda (lst)
                    (if (null? lst)
@@ -306,9 +328,10 @@
                          (test (cdr lst)))))))
     (test test-list))
 
-  ;; (define test-struct (scan&parse (list-ref test-list 5)))
-  ;; (eopl:printf "~a~%" test-struct)
-  ;; (eopl:printf "~a~%" (value-of-program test-struct))
+  
+;;   (define test-struct (scan&parse (list-ref test-list 6)))
+;; ;;  (eopl:printf "~a~%" test-struct)
+;;   (eopl:printf "~a~%" (value-of-program test-struct))
 
   
 
@@ -317,16 +340,4 @@
 
 
 
-;; let odd = proc (make x)
-;; if zero?(x)
-;; then
-;; 1
-;; else
-;; (make -(x,1))
-;; in let even = proc (make x)
-;; if zero?(x)
-;; then
-;; 0
-;; else
-;; (make -(x,1))
-;; in 
+
