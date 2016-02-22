@@ -69,10 +69,13 @@
                                                      ;; (eopl:printf "value: ~a~%~%" v)
                                                      ;; (eopl:printf "env: ~a~%~%" new-env)
                                                     (more-env (cdr var-lst) (cdr val-lst) (extend-env p-var p-val new-env)))]))))
-                          (let ((new-env (more-env var val env)))
-                            ;; (eopl:printf "var ~a =>  ~a~%~%" var val)
-                            ;; (eopl:printf "new env ~a~%~%" new-env)
-                            (value-of body new-env)))))))
+                          (let* ((new-env (more-env var val env))
+                                (value (value-of body new-env)))
+                           ;; (eopl:printf "var ~a =>  ~a~%~%" var val)
+                           ;; (eopl:printf "apply-procedure code: ~a~% => ~a ~%" (struct-to-code body) val)
+
+                           ;; (eopl:printf "apply-procedure value: ~a~%~%" value)
+                            value))))))
   
   
   (define-datatype expval expval?
@@ -183,9 +186,85 @@
                                                  (let ((val (value-of (car parms) env)))
                                                    (more-param (cdr parms) (cons val rsl)))))))
                          ;; (eopl:printf "call-exp: ~a~%" val1 )
-                         (let ((param-lst (more-param exp2 '())))
+                         (let ((param-lst (more-param (reverse exp2) '())))
                            (eopl:printf "call-exp: ~a~%" param-lst )
                            (apply-procedure proc param-lst))))
+             )))
+
+
+
+  ;;;;;;;;;;;;;;; change struct to code ;;;;;;;;;;;;;;;;;;;;;
+  (define program-to-code
+    (lambda (pgm)
+      (cases program pgm
+             (a-program (p)
+                        (struct-to-code p)))))
+
+
+  (define flatter-param
+    (lambda (lst)
+      (cond
+        [(null? lst) '()]
+        [(and (pair? (car lst)) (list? (car lst)))
+         (cons (car (car lst)) (flatter-param (cdr lst)))]
+        [else
+         (cons (car lst) (flatter-param (cdr lst)))])))
+
+  (flatter-param  '(proc ((x))))
+  
+          
+  
+  (define struct-to-code
+    (lambda (p)
+      (cases expression p
+             (const-exp (val)
+                         val)
+             (diff-exp (exp1 exp2)
+                       (let ((val1  (struct-to-code exp1))
+                             (val2  (struct-to-code exp2)))
+                         `(-  ,val1 ,val2)))
+             (zero?-exp (exp)
+                        (let ((val1 (struct-to-code exp)))
+                          (if (symbol? val1)
+                              `(zero? ( ,val1 ))
+                              `(zero? ,val1) )))
+             
+             (if-exp (exp1 exp2 exp3)
+                     (let ((val1 (struct-to-code exp1))
+                           (val2 (struct-to-code exp2))
+                           (val3 (struct-to-code exp3)))
+                       `(if ,val1 then ,val2 else ,val3)))
+             
+             (var-exp (x)
+                      x)
+
+
+             (let-exp (iden exp1 p-body)
+                      (let ((val1 (struct-to-code exp1))
+                            (body (struct-to-code p-body)))
+                        `(let ,iden = ,val1 in ,body)))
+
+
+             ;; Exercise 3.19 letproc
+             (letproc-exp (p-name p-var p-proc p-body)
+                          (let ((proc (struct-to-code p-proc))
+                                (body (struct-to-code p-body)))
+                            `(letproc ,p-name ( ,p-var ) =  ,proc in  ,body)))
+
+
+             (proc-exp (iden exp1)
+                       (let ((val (struct-to-code exp1)))
+                        `(proc ,iden  ,val)))
+             
+             (call-exp (exp1 exp2)
+                       (letrec ((val1 (struct-to-code exp1))
+                                (more-params (lambda (lst param)
+                                              (if (null? lst)
+                                                  param
+                                                  (let ((val (struct-to-code (car lst))))
+                                                    (more-params (cdr lst) (cons val param)))))))
+                                 (let ((params-lst (more-params exp2 '())))
+                                   `(,val1 ,params-lst))))
              )))
 
   (define program-str "let y = proc (x) if zero?(-(x,5)) then 1 else 2 in (y 18)")
@@ -199,24 +278,37 @@
     '("let y = proc (x) if zero?(-(x,5)) then 1 else 2 in (y 18)"
       "letproc y(x) = if zero?(-(x,18)) then 1 else 2 in (y 18)"
       "let f = proc (x) proc (y) -(x, -(0, y))  in ((f 5) 4)"
-      "let f = proc (x,y,z,w) -(x, -(0, -(y, -(0,-(z, -(0, w)))))) in (f 1 2 3 4)"))
+      "let f = proc (x,y,z,w) -(x, -(0, -(y, -(0,-(z, -(0, w)))))) in (f 1 2 3 4)"
+      "let makemult = proc (maker) proc (x)
+                                        if zero?(x)
+                                            then 0
+                                        else -(((maker maker) -(x,1)), -4)
+                      in let times4 = proc (x) ((makemult makemult) x) in (times4 3)"
+
+      ;; Exercise 3.23
+      "let makemult = proc (maker, x, y)
+      if zero?(x)
+      then 0
+      else
+      -((maker maker -(x,1) y), -(0,y))
+      in let times = proc (x, y)
+      (makemult makemult x y) in (times 3 5)"
+          
+
+      ))
 
   
-  ;; (letrec ((test (lambda (lst)
-  ;;                  (if (null? lst)
-  ;;                      (eopl:printf "All test success!")
-  ;;                      (begin
-  ;;                        (eopl:printf "~a~%" (value-of-program (scan&parse (car lst))))
-  ;;                        (test (cdr lst)))))))
-  ;;   (test test-list))
+  (letrec ((test (lambda (lst)
+                   (if (null? lst)
+                       (eopl:printf "All test success!")
+                       (begin
+                         (eopl:printf "~a~%" (value-of-program (scan&parse (car lst))))
+                         (test (cdr lst)))))))
+    (test test-list))
 
-  (define test-str "let makemult = proc (maker) proc (x)
-if zero?(x)
-then 0
-else -(((maker maker) -(x,1)), -4)
-in let times4 = proc (x) ((makemult makemult) x) in (times4 3)" )
-
- (eopl:printf "~a~%" (value-of-program (scan&parse test-str)))
+  ;; (define test-struct (scan&parse (list-ref test-list 5)))
+  ;; (eopl:printf "~a~%" test-struct)
+  ;; (eopl:printf "~a~%" (value-of-program test-struct))
 
   
 
@@ -224,20 +316,17 @@ in let times4 = proc (x) ((makemult makemult) x) in (times4 3)" )
 
 
 
-;; (value-of (let times4 = proc (x) ((makemult makemult) x) in (times4 3))    [makemult=(proc-val (procedure  (proc-val (procedure p env))))]P)
 
-;; (value-of (times4 3)  [times4=v2][makemult=v]P)
-
-;; (value-of 
-
-;; #(Struct:extend-env times4
-;;                     #(struct:proc-val #(struct:procedure (x)
-;;                                      #(struct:call-exp
-;;                                        #(struct:call-exp
-;;                                          #(struct:var-exp makemult)
-;;                                          (#(struct:var-exp makemult)))
-;;                                        (#(struct:var-exp x)))
-;;                                      #(struct:extend-env makemult
-;;                                                          #(struct:proc-val #(struct:procedure (maker) #(struct:proc-exp (x) #(struct:if-exp #(struct:zero?-exp #(struct:var-exp x)) #(struct:const-exp 0) #(struct:diff-exp #(struct:call-exp #(struct:call-exp #(struct:var-exp maker) (#(struct:var-exp maker))) (#(struct:diff-exp #(struct:var-exp x) #(struct:const-exp 1)))) #(struct:const-exp -4)))) #(struct:extend-env i #(struct:num-val 1) #(struct:extend-env v #(struct:num-val 5) #(struct:extend-env x #(struct:num-val 10) #(struct:empty-env))))))
-
-;;                                                          #(struct:extend-env i #(struct:num-val 1) #(struct:extend-env v #(struct:num-val 5) #(struct:extend-env x #(struct:num-val 10) #(struct:empty-env)))))))
+;; let odd = proc (make x)
+;; if zero?(x)
+;; then
+;; 1
+;; else
+;; (make -(x,1))
+;; in let even = proc (make x)
+;; if zero?(x)
+;; then
+;; 0
+;; else
+;; (make -(x,1))
+;; in 
