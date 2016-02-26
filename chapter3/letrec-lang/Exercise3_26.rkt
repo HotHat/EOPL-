@@ -193,80 +193,58 @@
 
 
 
-  ;;;;;;;;;;;;;;; change struct to code ;;;;;;;;;;;;;;;;;;;;;
-  (define program-to-code
-    (lambda (pgm)
-      (cases program pgm
-             (a-program (p)
-                        (struct-to-code p)))))
+  ;;;;;;;;;;;;;;;  ;;;;;;;;;;;;;;;;;;;;;
 
-
-  (define flatter-param
-    (lambda (lst)
-      (cond
-        [(null? lst) '()]
-        [(and (pair? (car lst)) (list? (car lst)))
-         (cons (car (car lst)) (flatter-param (cdr lst)))]
-        [else
-         (cons (car lst) (flatter-param (cdr lst)))])))
-
-  (flatter-param  '(proc ((x))))
-  
-          
-  
-  (define struct-to-code
-    (lambda (p)
-      (cases expression p
-             (const-exp (val)
-                         val)
+  (define free-variables
+    (lambda (pgm bounds)
+      (cases expression pgm
+             (const-exp (x)
+                        '())
+             (var-exp (v)
+                      (if (member v bounds)
+                          '()
+                          (list v)))
              (diff-exp (exp1 exp2)
-                       (let ((val1  (struct-to-code exp1))
-                             (val2  (struct-to-code exp2)))
-                         `(-  ,val1 ,val2)))
+                       (append (free-variables exp1 bounds)
+                               (free-variables exp2 bounds)))
              (zero?-exp (exp)
-                        (let ((val1 (struct-to-code exp)))
-                          (if (symbol? val1)
-                              `(zero? ( ,val1 ))
-                              `(zero? ,val1) )))
-             
-             (if-exp (exp1 exp2 exp3)
-                     (let ((val1 (struct-to-code exp1))
-                           (val2 (struct-to-code exp2))
-                           (val3 (struct-to-code exp3)))
-                       `(if ,val1 then ,val2 else ,val3)))
-             
-             (var-exp (x)
-                      x)
-
-
-             (let-exp (iden exp1 p-body)
-                      (let ((val1 (struct-to-code exp1))
-                            (body (struct-to-code p-body)))
-                        `(let ,iden = ,val1 in ,body)))
-
-
-             ;; Exercise 3.19 letproc
-             (letproc-exp (p-name p-var p-proc p-body)
-                          (let ((proc (struct-to-code p-proc))
-                                (body (struct-to-code p-body)))
-                            `(letproc ,p-name ( ,p-var ) =  ,proc in  ,body)))
-
-
-             (proc-exp (iden exp1)
-                       (let ((val (struct-to-code exp1)))
-                        `(proc ,iden  ,val)))
-             
+                        (free-variables exp bounds))
+             (if-exp (iden exp1 exp2)
+                     (append (free-variables iden bounds)
+                             (free-variables exp1 bounds)
+                             (free-variables exp2 bounds)))
+             (let-exp (iden exp body)
+                      (append (free-variables iden bounds)
+                              (free-variables exp bounds)
+                              (free-variables body (cons iden bounds))))
+             (proc-exp (p-var p-body)
+                       (free-variables p-body (cons p-var bounds)))
+             (letproc-exp (iden p-var p-exp p-body)
+                          (eopl:printf "letproc~%"))
              (call-exp (exp1 exp2)
-                       (letrec ((val1 (struct-to-code exp1))
-                                (more-params (lambda (lst param)
-                                              (if (null? lst)
-                                                  param
-                                                  (let ((val (struct-to-code (car lst))))
-                                                    (more-params (cdr lst) (cons val param)))))))
-                                 (let ((params-lst (more-params exp2 '())))
-                                   `(,val1 ,params-lst))))
-             )))
+                       (append (free-variables exp1 bounds)
+                               (free-variables exp2 bounds))))))
+                        
+                       
 
+  (define free-variables-test
+    '(
+    "3"
+    "a"
+    "zero?(x)"
+    "if zero?(-(x,5)) then  y else p"
+    "let f=proc(x) x in (f 5)"
+    "proc(x) proc(y) -(x,y)"
+    ))
+
+  (letrec ((test (lambda (lst)
+                   (if (null? lst)
+                       (eopl:printf "Test over")
+                       (let ((x (scan&parse (car lst))))
+                         (eopl:printf "free variable: ~a~%" (free-variables x '()))
+                         (test (cdr lst)))))))
+    (test free-variables-test))
+  
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 

@@ -45,7 +45,7 @@
        proc-exp)
 
       (expression
-       ("(" expression (arbno expression) ")")                       ;; change for Exercise 3.21
+       ("(" expression (arbno expression) ")")   ;; change for Exercise 3.21
        call-exp)
       (expression
        ("letproc" identifier "(" identifier ")" "=" expression "in" expression)
