@@ -176,7 +176,10 @@
                                  (value-of p-body (extend-env p-name proc env))))
 
              (proc-exp (iden exp1)
-                       (proc-val (procedure iden exp1 env)))
+                       (let ((free-var (remove-same-element (free-variables exp1  iden))))
+                         (let ((f-env (filter-env free-var env)))
+                          ; (eopl:printf "free-var: ~a  => new-env: ~a~%" free-var f-env)
+                           (proc-val (procedure iden exp1 f-env )))))
              
              (call-exp (exp1 exp2)
                        (letrec ((proc (expval->proc (value-of exp1 env)))
@@ -214,35 +217,88 @@
                              (free-variables exp1 bounds)
                              (free-variables exp2 bounds)))
              (let-exp (iden exp body)
-                      (append (free-variables iden bounds)
-                              (free-variables exp bounds)
+                      (append (free-variables exp bounds)
                               (free-variables body (cons iden bounds))))
              (proc-exp (p-var p-body)
-                       (free-variables p-body (cons p-var bounds)))
+                       ;(eopl:printf "p-var => ~a~%" p-var)
+                       (letrec ((bounds-f (lambda (lst more)
+                                            (if (null? lst)
+                                                more
+                                                (bounds-f (cdr lst) (append more (list (car lst))))))))
+                         (let ((more-bounds (bounds-f p-var bounds)))
+                           ;(eopl:printf "bounds => ~a ~%" more-bounds)
+                           (free-variables p-body more-bounds))))
              (letproc-exp (iden p-var p-exp p-body)
                           (eopl:printf "letproc~%"))
              (call-exp (exp1 exp2)
-                       (append (free-variables exp1 bounds)
-                               (free-variables exp2 bounds))))))
-                        
-                       
+                       (letrec ((append-f (lambda (lst more)
+                                            (if (null? lst)
+                                                more
+                                                (append-f (cdr lst) (append more (free-variables (car lst) bounds)))))))
+                         (let ((more-f (append-f exp2 '())))
+                          ; (eopl:printf "old bounds => ~a~%" bounds)
+                          ; (eopl:printf "more => ~a~%" more-f)
+                           (append (free-variables exp1 bounds)
+                                   more-f)))))))
 
+
+  (define remove-same-element
+    (lambda (lst)
+      (if (null? lst)
+          '()
+          (if (member (car lst) (cdr lst))
+              (remove-same-element (cdr lst))
+              (cons (car lst) (remove-same-element (cdr lst)))))))
+
+  (remove-same-element '(a b c a b c f))
+  
+                       
+  (define filter-env
+    (lambda (lst env)
+      (letrec ((f-env (lambda (lst env)
+                        (cases enviroment env
+                               (empty-env ()
+                                          (empty-env))
+                               (extend-env (var val next-env)
+                                           (if (member var lst)
+                                               (extend-env var val (f-env lst next-env))
+                                               (f-env lst next-env)))))))
+        (if (null? lst)
+            (empty-env)
+            (f-env lst env)))))
+          
+  (eopl:printf "filter-env: ~a~%" (filter-env '() (init-env)))
+
+
+  
   (define free-variables-test
     '(
-    "3"
-    "a"
-    "zero?(x)"
-    "if zero?(-(x,5)) then  y else p"
-    "let f=proc(x) x in (f 5)"
-    "proc(x) proc(y) -(x,y)"
-    ))
+      "3"
+      "a"
+      "let f = proc(x) proc(y) -(x, y) in (f f y x 5 )"
+      "proc(x) -(x, y)"
+      "proc(x) proc (y) -(x, y)"
+      "let makemult = proc (maker) proc (x)
+                                        if zero?(x)
+                                            then 0
+                                        else -(((maker maker) -(x,1)), -4)
+                      in let times4 = proc (x) ((makemult makemult) x) in (times4 3)"
+      "  proc (x)
+                                        if zero?(x)
+                                            then 0
+                                        else -(((maker maker) -(x,1)), -4)"
+       
+      
+      ))
 
   (letrec ((test (lambda (lst)
                    (if (null? lst)
-                       (eopl:printf "Test over")
+                       (eopl:printf "Test over~%")
                        (let ((x (scan&parse (car lst))))
-                         (eopl:printf "free variable: ~a~%" (free-variables x '()))
-                         (test (cdr lst)))))))
+                         (cases program x
+                                (a-program (pgm)
+                                           (eopl:printf "free variable: ~a~%" (free-variables pgm '()))
+                                           (test (cdr lst)))))))))
     (test free-variables-test))
   
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
